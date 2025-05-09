@@ -1,0 +1,59 @@
+Based on the provided source, here is a step-by-step process to demonstrate the containerization of a Django application using Docker:
+
+1.  **Understand the Django Application Workflow (Recommended)**
+    Before containerizing, it's helpful to have an idea of how the application functions. While not strictly necessary for a user just running the demo, a DevOps engineer containerizing 
+   it needs this understanding. The basic workflow involves installing Django, starting a project using `django-admin startproject`, starting an application within the project using 
+   `python manage.py startapp`, writing application logic in files like `views.py`, and serving content using templates configured via `urls.py`. Understanding where configurations 
+   (`settings.py`), code (`views.py`), and dependencies (`requirements.txt`) are located is crucial.
+
+2.  **Understand the Need for Containerization**
+    Recognize that containerization solves the classic problem of applications working on a developer's machine but failing elsewhere due to inconsistent environments. Docker containers 
+    bundle the source code, system dependencies, and required modules, ensuring the application runs consistently across different machines where Docker is installed.
+
+3.  **The Role of the DevOps Engineer**
+      As a DevOps engineer tasked with this, the responsibility is to analyze the application and **write a Dockerfile**.
+
+4.  **Create/Analyze the Dockerfile**
+     The demonstration relies on a pre-written Dockerfile. The key steps within this Dockerfile are:
+    *   Choose a base image, such as Ubuntu.
+    *   Set a working directory inside the container (e.g., `/app`) where the application code will reside.
+    *   Copy the `requirements.txt` file (listing Python dependencies) into the working directory.
+    *   Copy the application source code (e.g., the `devops` project folder) into the working directory.
+    *   Install necessary software and dependencies. This includes installing Python on the Ubuntu base image, then using `pip install -r requirements.txt` to install the Python 
+        dependencies.
+    *   Define the container's startup command using `ENTRYPOINT` and `CMD`. The `ENTRYPOINT` specifies the main executable (e.g., `python3`), which is typically not intended to be 
+        easily overridden. The `CMD` provides default parameters for the `ENTRYPOINT` (e.g., `manage.py runserver 0.0.0.0:8000`), which can be easily overridden by the user when running 
+        the container.
+
+5.  **Obtain the Application Code and Dockerfile**
+       The source mentions the Django application and its Dockerfile are available in a GitHub repository. The first practical step for someone following the demo is to **clone this 
+       repository**. The link to the repository is typically found in the video description.
+
+6.  **Navigate to the Application Directory**
+       Once the repository is cloned, navigate into the specific directory containing the Django application and its Dockerfile (e.g., the `python web app` folder).
+
+7.  **Build the Docker Image**
+       Inside the directory with the Dockerfile, **build the Docker image** using the command:
+       ```bash
+       docker build .
+       ```
+      This command reads the Dockerfile and executes the steps within it to create a Docker image.
+       You can verify the image was built successfully by running `docker images`.
+
+8.  **Run the Docker Container with Port Mapping**
+      To make the Django web application, which runs on port 8000 *inside* the container, accessible from your host machine and browser, you must perform **port mapping** when running 
+      the container. Use the `-p` (or `-P`) flag. The command to run the container and map port 8000 inside the container to port 8000 on the host is:
+      ```bash
+      docker run -p 8000:8000 <image_name_or_id>
+       ```
+       Replace `<image_name_or_id>` with the name or ID of the image you just built. Running *without* port mapping (e.g., just `docker run -it <image>`) will start the container but the 
+       web application will not be accessible from outside.
+
+9.  **Access the Application in a Browser**
+       After successfully running the container with port mapping, open a web browser and navigate to your host machine's IP address or `localhost` followed by the mapped port (e.g., 
+       `http://<host_ip>:8000` or `http://localhost:8000`). The Django application should now be accessible.
+
+10. **Troubleshoot Accessibility Issues (Firewall/Security Group)**
+      If the application is still not accessible even after port mapping, especially when running on a cloud instance like AWS EC2, the issue is likely that the host machine's **security 
+      group or firewall** is blocking inbound traffic on the mapped port (e.g., 8000). You need to **update the inbound traffic rules** for the security group associated with your 
+      instance to allow connections to the specific port (e.g., 8000) from your desired source (e.g., your IP address or anywhere).
