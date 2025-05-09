@@ -1,0 +1,64 @@
+Based on the provided source, here is a step-by-step process for the demo shown in the video:
+
+**Step 1: Prepare the Environment**
+*   Create an **AWS EC2 instance** running Ubuntu. This instance will serve as the host machine for Docker.
+
+**Step 2: Install Docker**
+*   Log into the EC2 instance using SSH.
+*   Update the package lists on the instance using the command: `sudo apt update`.
+*   Install the Docker package using the command: `sudo apt install docker.io -y`.
+*   Verify that the Docker daemon is running using the command: `sudo systemctl status docker`. It should show "active".
+
+**Step 3: Address Permission Issues (if they occur)**
+*   Attempt to run a simple Docker command, such as `docker run hello-world`.
+*   If you encounter a "permission denied" error, it's because the Docker daemon runs as root, and the default user doesn't have access.
+*   Add the current user (e.g., `ubuntu`) to the `docker` group using the command: `sudo usermod -aG docker <username>` (replace `<username>` with your actual username).
+*   **Log out of the EC2 instance and log back in** for the group changes to take effect. This is required because the user profile needs to be reactivated.
+*   Retry running the `docker run hello-world` command to confirm the permission issue is resolved.
+
+**Step 4: Obtain the Application Code and Dockerfile**
+*   Clone the GitHub repository mentioned in the video using the command: `git clone <repository_url>`. The repository contains the example application and Dockerfile.
+*   Navigate into the cloned repository directory.
+*   Change into the `examples` folder within the repository.
+*   Examine the Python application file (e.g., `app.py`) and the Dockerfile (e.g., `first-dockerfile`). The `app.py` in the example simply prints "hello world".
+
+**Step 5: Understand the Dockerfile**
+*   Look at the contents of the Dockerfile. The example Dockerfile includes instructions like:
+    *   `FROM ubuntu:latest`: Specifies the base image (Ubuntu latest) to use for the container. This base image comes from a public registry like Docker Hub.
+    *   `WORKDIR /app`: Sets the working directory inside the container to `/app`. Subsequent instructions will execute in this directory.
+    *   `COPY . . /app`: Copies the contents of the current directory (where the Dockerfile is) into the `/app` directory inside the container. This copies the `app.py` file.
+    *   `RUN apt update && apt install python3 -y`: Installs Python 3 inside the image. This step ensures the necessary dependency for the Python application is present.
+    *   `CMD ["python3", "app.py"]`: Defines the command to run when a container is started from this image. In this case, it runs the Python script.
+
+**Step 6: Build the Docker Image**
+*   Navigate to the directory containing the Dockerfile.
+*   Build the Docker image using the command: `docker build . -t <dockerhub_username>/<repository_name>:<tag>`.
+    *   `docker build .`: Tells the Docker daemon to build an image using the Dockerfile in the current directory (`.`).
+    *   `-t <tag>`: **Tags** the image. Tagging is important because it makes it easy to identify your image later instead of using a difficult-to-remember image ID. The tag format 
+        `<dockerhub_username>/<repository_name>:<tag>` is used because the intention is to push this image to Docker Hub. For example, `abhishekr5/my_first_docker_image:latest`.
+*   The Docker daemon executes the instructions in the Dockerfile sequentially to create the image.
+
+**Step 7: Run the Docker Container**
+*   Run a container from the newly built image using the command: `docker run -it <image_tag_or_id>`.
+    *   `docker run`: Command to create and start a new container from an image.
+    *   `-it`: Allocates a pseudo-TTY connected to the container's standard input and creates an interactive bash shell. Although the demo application is simple, this is a common way to 
+         run initial containers.
+    *   `<image_tag_or_id>`: Refers to the image built in the previous step, either by its tag (e.g., `abhishekr5/my_first_docker_image:latest`) or its image ID.
+*   The container will start, execute the `CMD` instruction (`python3 app.py`), and you should see the output "hello world" in your terminal.
+
+**Step 8: Log in to Docker Hub**
+*   To push the image to Docker Hub, first log in using the command: `docker login`.
+*   Enter your Docker Hub username and password when prompted. You need to have created an account on Docker Hub beforehand.
+
+**Step 9: Push the Docker Image to Docker Hub**
+*   Push the built and tagged image to your Docker Hub repository using the command: `docker push <image_tag>`. For example, `docker push abhishekr5/my_first_docker_image:latest`.
+*   The Docker daemon uploads the image layers to the specified Docker Hub repository.
+*   Confirm the image has been pushed by checking your Docker Hub account on the web interface. You should see the new repository and the tagged image listed.
+
+**Step 10: Share and Pull the Image (Optional but shown as the goal)**
+*   Once the image is on Docker Hub, others (or you on a different machine) can pull the image using the command: `docker pull <image_tag>`. For example, `docker pull 
+    abhishekr5/my_first_docker_image:latest`.
+*   They can then run a container from the pulled image using the `docker run` command, just as you did in Step 7, without needing to install Python or dependencies manually on their 
+    host.
+
+This step-by-step process covers the core demonstration of containerizing a simple application, building an image, running a container, and sharing the image via Docker Hub as shown in the source.
