@@ -1,0 +1,56 @@
+
+**Problem with Traditional Docker Builds**
+
+Traditionally, when creating a Docker image for an application, such as a Python calculator application, you might start with a general base image like Ubuntu. The steps would involve installing necessary dependencies and the application runtime (like Python), copying the source code, building any required artifacts (like a `.pyc` file), and then setting the command to execute the application.
+
+The significant problem with this approach is that even for a simple application that only requires a specific runtime (like Python runtime for a Python app or Java runtime for a Java app), the resulting Docker image contains **many other things**. A base image like Ubuntu comes with numerous system dependencies, apt packages, and repositories that are not needed for the sole purpose of running the application. Similarly, if you install packages required *only* for building the application (like compilers, build tools, or specific libraries needed during compilation), these dependencies also end up in the final image, even though they are not needed at runtime.
+
+This leads to **overload** on the simple Docker image you intend to create. Using a single-stage build for a complex application involving front-end (e.g., React), back-end (e.g., Java Spring Boot), and database components (e.g., MySQL) on a base image like Ubuntu would require installing dependencies for all these layers, building their respective components, and then potentially executing a combined artifact. This process piles up all dependencies and build artifacts onto the base image, causing the Docker image size to go **crazy**, potentially reaching 1GB or more.
+
+**Multi-Stage Docker Builds: The Solution**
+
+To address the problem of large image sizes caused by including build dependencies and unnecessary base image components, Docker introduced the concept of **multi-stage builds**.
+
+The core idea of multi-stage builds is to **split your Dockerfile into multiple parts or stages**. While there can be multiple stages, the most common structure involves at least two:
+1.  **Build Stage:** This stage typically starts with a **"rich" base image**, meaning one that includes all the necessary tools and dependencies required to **build your application**. 
+      For example, you might use an Ubuntu image because it's easy to install build dependencies like `curl` or `wget` which might be needed during the build process. In this stage, you 
+      install build tools, libraries, copy source code, and compile/build your application binary or artifact. Crucially, this stage **does not** typically include the final `CMD` or 
+      `ENTRYPOINT` command that runs the application. The final Docker image will **not** contain all the content from this build stage.
+2.  **Final (Runtime) Stage:** This stage starts with a **very minimal image**. The purpose of this stage is solely to **run your application**. You choose a base image that contains 
+     **only the runtime environment** required by your application (e.g., just Python runtime or just Java runtime). The key step is then to **copy only the necessary application binary 
+       or artifact** from the *build stage* into this minimal final stage. This is done using a `COPY --from` instruction, referencing the build stage by an alias or its index. This 
+       final stage includes the `ENTRYPOINT` or `CMD` command to execute the application.
+
+        **advantage** of this approach is that the final Docker image size is **significantly reduced**. Because the final image only contains the minimal base image and the application 
+       binary, all the build dependencies, source code, and the larger base image used during the build process are discarded.
+
+       For a three-tier application, you could potentially use multiple stages: one for building the front-end, one for building the back-end, and a final stage to combine the required 
+       artifacts from the previous stages onto a minimal runtime image. The source states that there can be a **countless number of stages**, but there will always be **only one final 
+       stage**, which should be a minimalistic image.
+
+**Distroless Container Images**
+
+     The concept of **distroless images** is closely related to multi-stage builds. A distroless image is a **very minimalistic** or lightweight Docker image. They are designed to 
+     contain **hardly any packages**.
+
+A distroless image for a specific language, like Python or Java, will typically contain **only the runtime environment** for that language (e.g., just Python runtime or just OpenJDK JRE). However, for some applications, like those written in Go language, which is statically typed, the application binary **does not even require a separate runtime** to execute. In such cases, the distroless image can be even more minimal.
+
+A key characteristic of distroless images is their deliberate **lack of standard operating system packages** and even basic shell commands. For example, a Python distroless image might not have commands like `find`, `curl`, `wget`, or even `ls`. The sole purpose of this minimal environment is to **just execute your application binary**.
+
+Distroless images are ideal for use as the base image for the **final stage** in a multi-stage Docker build because they are the most minimalistic images available. The `scratch` image is mentioned as the **most minimalistic distroless image** available. Using `scratch` is possible for statically typed applications like Go because they don't need a separate runtime. For applications requiring a runtime like Python or Java, you would choose a Python or Java distroless image instead of `scratch`, and then install the application binary on top of that.
+
+You can find distroless images by searching online; the source points to a GitHub repository dedicated to distroless images where you can find locations for different languages like Java.
+
+**Advantages of Multi-Stage Builds with Distroless Images**
+
+Using multi-stage Docker builds in conjunction with distroless images offers significant advantages:
+
+1.  **Drastic Reduction in Image Size:** This is a major benefit. The source demonstrates this using a Go calculator application. A traditional single-stage build using an Ubuntu base 
+      image resulted in an image size of **861 MB**. By contrast, using a multi-stage build with a `scratch` distroless image in the final stage (only copying the Go binary) resulted in 
+      an image size of **1.83 MB**. This is presented as a reduction by approximately **800 times** or 100 times less. For a Java application, the reduction might be to around 200MB when 
+      using an OpenJDK distroless image.
+2.  **Enhanced Security:** Distroless images provide the **highest level of security**. By removing most operating system packages and dependencies, the **attack surface is significantly 
+    reduced**. With fewer binaries and libraries included, there are fewer potential vulnerabilities for hackers to exploit. Applications using Go language with `scratch` are presented 
+    as being **99 percent of times not exposed to vulnerabilities**. Even for Python or Java applications using their respective distroless runtimes, there is a **very little chance of 
+    exposing to security threats**. This makes the containers much less vulnerable to OS or operating system related vulnerabilities.
+
