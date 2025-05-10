@@ -1,0 +1,46 @@
+Based on the provided source, here is a step-by-step process to demonstrate the concepts of multi-stage Docker builds and distroless container images using the Go calculator application example:
+
+1.  **Clone the GitHub Repository:** Start by cloning the GitHub repository mentioned in the source where the example code and Dockerfiles are located. This repository contains all the 
+      necessary content for the Docker classes.
+    *   You will typically use a command like `git clone [repository_url]` (Note: The exact URL is not provided in the source, only the organization name "Abhishek.Veeramalla" and 
+       repository name "Docker 0 To Hero").
+2.  **Navigate to the Example Directory:** Once the repository is cloned, navigate into the specific directory that contains the Go calculator application and its associated Dockerfiles. 
+      The source indicates this path is typically within an `examples` folder.
+    *   Example: `cd Docker\ 0\ To\ Hero/examples/golang-multi-stage-docker-build`.
+3.  **Examine the Single-Stage Dockerfile:** Look at the Dockerfile used for a traditional build without multi-stage concepts. This file is typically named `Dockerfile-without-multi- 
+      stage`.
+    *   This Dockerfile starts `FROM Ubuntu`.
+    *   It then installs the Go language and copies the source code (`calculator.go`).
+    *   It builds the Go binary and sets the `ENTRYPOINT` to execute this binary.
+4.  **Build the Traditional (Single-Stage) Image:** Build the Docker image using the single-stage Dockerfile.
+    *   Navigate to the directory containing `Dockerfile-without-multi-stage`.
+    *   Execute the Docker build command, providing a tag for the image.
+    *   Example: `docker build -t simple-calculator .`.
+    *   Observe the build process, which involves pulling the Ubuntu base image and installing dependencies.
+5.  **Check the Size of the Traditional Image:** After the build is complete, check the size of the created image.
+    *   Use the command `docker images`.
+    *   To easily see the latest images, you can pipe the output to `head -5`.
+    *   Example: `docker images | head -5`.
+    *   **Note the image size.** For the Go calculator example using Ubuntu in a single stage, the source shows the size was **861 MB**.
+6.  **Examine the Multi-Stage Dockerfile:** Now, look at the Dockerfile that utilizes multi-stage builds. This file is typically named `Dockerfile` within the `golang-multi-stage-docker- 
+      build` directory.
+    *   This Dockerfile contains **two stages**.
+    *   **Stage 1 (Build Stage):** Starts `FROM Ubuntu` (aliased as `build`). This stage is used to install Go, copy the source code, and build the application binary. It **does not** 
+       have an `ENTRYPOINT` or `CMD`. This stage includes dependencies needed *only* for building.
+    *   **Stage 2 (Final/Runtime Stage):** Starts `FROM scratch`. `scratch` is described as the most minimalistic distroless image available, containing almost nothing. This stage uses 
+       the `COPY --from=build` instruction to copy **only the compiled binary** from the first stage into this minimal image.
+    *   The `ENTRYPOINT` is set in this final stage to execute the copied binary.
+    *   This setup is highly effective for statically typed languages like Go because the binary itself does not require a separate runtime environment like Python or Java.
+7.  **Build the Multi-Stage Image:** Build the Docker image using the multi-stage Dockerfile.
+    *   Ensure you are in the directory containing the multi-stage `Dockerfile`.
+    *   Execute the Docker build command, providing a different tag.
+    *   Example: `docker build -t simple-calculator-multi-stage .`.
+8.  **Check the Size of the Multi-Stage Image:** After this build completes, check the size of the multi-stage image.
+    *   Use the command `docker images | head -5` again.
+    *   **Observe the drastic reduction in image size.** For the Go calculator example using a multi-stage build with `scratch`, the source shows the size was only **1.83 MB**.
+9.  **Compare and Conclude:** Compare the sizes of the two images (traditional vs. multi-stage). The source highlights a reduction from 861 MB to 1.83 MB, calling it a reduction of 
+      approximately **800 times**.
+    *   This demonstrates the significant advantage of using multi-stage builds and distroless images (like `scratch` for Go applications) for reducing image size and improving security 
+      by having a minimal attack surface.
+    *   Mention that while `scratch` is used for Go, for applications requiring a runtime (Python, Java), you would use their respective distroless images in the final stage. You can 
+     find these by searching for "distroless images" online and looking at repositories dedicated to them.
